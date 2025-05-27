@@ -11,8 +11,8 @@ from psutil import disk_usage, cpu_percent, virtual_memory, Process as psprocess
 from bot.database import getffmpeg, getffmpeg1
 from pathlib import Path
 
-FINISHED_PROGRESS_STR = "▪️"
-UN_FINISHED_PROGRESS_STR = "▫️"
+FINISHED_PROGRESS_STR = "▓"
+UN_FINISHED_PROGRESS_STR = "░"
 
 
 async def ffprobe(i_filepath):
@@ -225,13 +225,14 @@ async def encode_it(input_file, output, message, obj, total_time):
         percentage = math.floor(elapsed_time * 100 / total_time)
         perc_str = '{0}%'.format(round(percentage, 2))
         prog_bar_str = '{0}{1}'.format(''.join([FINISHED_PROGRESS_STR for i in range(math.floor(percentage / 10))]), ''.join([UN_FINISHED_PROGRESS_STR for i in range(10 - math.floor(percentage / 10))]))
-        stats = f'🗜 **Compressing Video:**' \
-                f' {perc_str}\n' \
-                f'[{prog_bar_str}]\n' \
-                f'**Encoded:** {ottt}\n\n' \
-                f'◉ **Time Left:** {ETA}'
+        stats = f'➤ **Ꭼnᴄᴏding** 🎖\n' \
+                f'➤ **Ꭲiʍᴇ Ꮮᴇfᴛ** ⏳ : {ETA}\n' \
+                f'➤ **Ꮯurrᴇnᴛ Ꮪizᴇ** 🖥 : {ottt}\n' \
+                f'➤ **Ꮲᴇrᴄᴇnᴛᴀgᴇ** 🗝 : {perc_str}\n' \
+                f'➤ {prog_bar_str}\n' \
+                f'➽───────────────❥'
         try:
-          await message.edit(text=stats, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data=f"cancel"), InlineKeyboardButton("FILE STATUS", callback_data=f"stats")]]))
+          await message.edit(text=stats,reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("☕️ FILE STATUS ☕️", callback_data=f"stats" )],[InlineKeyboardButton("🥢 Cancel 🥢", callback_data=f"cancel" )],]))
         except Exception as e:
           cast = None
           for proc in psutil.process_iter():
@@ -250,7 +251,7 @@ async def encode_it(input_file, output, message, obj, total_time):
 
 def removeUsernames(string):
     st = re.sub(r'\.?@(\w+)\s*', '', string)
-    st = re.sub(r'\([^)]*\)', '', st)
+    st = re.sub(r'\([^)]*\)|Tv|Ver', '', st)
     st = re.sub(r'\s{2,}|-', ' ', st.strip())
     return st
 
@@ -284,7 +285,7 @@ async def download_video(download, reply):
         message=download,
         file_name=Config.DOWNLOAD_DIR,
         progress=progress_for_pyrogram,
-        progress_args=(bot, "📥 **Downloading Video:**", reply, d_start)
+        progress_args=(bot, "➣  📥 **Downloading 🍾 Video:** 🚴‍♀️", reply, d_start)
       )
  return video
 
@@ -303,7 +304,7 @@ async def replacee(filename):
 async def mediainfo(app, message):
   if message.reply_to_message:
    video = message.reply_to_message.id
-   msg = await app.send_message(chat_id=message.chat.id, reply_to_message_id=message.reply_to_message.id, text="📥 **Downloading Video:**", disable_web_page_preview=True)
+   msg = await app.send_message(chat_id=message.chat.id, reply_to_message_id=message.reply_to_message.id, text="➣  📥 **Downloading 🍾 Video:** 🚴‍♀️", disable_web_page_preview=True)
    d_start = time.time()
    filepath = await app.download_media(
         message=message.reply_to_message,
@@ -311,7 +312,7 @@ async def mediainfo(app, message):
         progress=progress_for_pyrogram,
         progress_args=(
           app,
-          "📥 **Downloading Video:**",
+          "➣  📥 **Downloading 🍾 Video:** 🚴‍♀️",
           msg,
           d_start
         )
@@ -321,14 +322,14 @@ async def mediainfo(app, message):
    await msg.edit(f"[Mediainfo]({mediainfo})")
    os.remove(filepath)
   else:
-   await app.send_message(message.chat.id, "⚠️ **Reply To A File To Download It.**", reply_to_message_id=message.id)
+   await app.send_message(message.chat.id, "⚠️ **Reply To A File To Download It.** 😐", reply_to_message_id=message.id)
 
 
 async def encode(dic):
  try:
   from_user_id = int(dic['from_user']['id'])
   reply_video_id = int(dic['id'])
-  dfix = "📥 **Downloading Video:**"
+  dfix = "➣  📥 **Downloading 🍾 Video:** 🚴‍♀️"
   reply = await bot.send_message(text=dfix, chat_id=from_user_id, reply_to_message_id=reply_video_id)
   media_type = str(dic['media'])
   if media_type == "MessageMediaType.VIDEO":
@@ -354,7 +355,7 @@ async def encode(dic):
   duration = await ffmpeg.duration(filepath=down)
   output_name = 'encodes/' + joined + '.mkv'
   await encode_it(down, output_name, reply, from_user_id, duration)
-  await reply.edit("📤 **Uploading Video:**")
+  await reply.edit("➣  📤 **Uploading 🍾 Video:** 🚴‍♀️")
   await upload_handle1(bot, from_user_id, output_name, with_ext, joined, reply, reply_video_id)
   await reply.delete(True)
   os.remove(down)
