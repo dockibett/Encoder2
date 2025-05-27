@@ -50,28 +50,28 @@ async def upload_dir(client, message):
     replyid = message.id
     if message.from_user.id in Config.OWNER:
         if os.path.exists(cmd1):
-            xhamster = await bot.send_message(text=f"📤 **Uploading File:**", chat_id=message.from_user.id, reply_to_message_id=message.id)
+            xhamster = await bot.send_message(text=f"📤 **Uploading File:** 🚴‍♀️", chat_id=message.from_user.id, reply_to_message_id=message.id)
             await client.send_document(
                 chat_id=message.chat.id,
                 document=cmd1,
                 caption=cmd1,
                 reply_to_message_id=replyid,
                 progress=progress_for_pyrogram,
-                progress_args=(client, "📤 **Uploading File:**", xhamster, u_start)
+                progress_args=(client, "📤 **Uploading File:** 🚴‍♀️", xhamster, u_start)
             )
             await xhamster.delete()
         else:
             await bot.send_message(text=f"❌ **File Directory Not Found:**\n`{cmd1}`", chat_id=message.from_user.id, reply_to_message_id=message.id)
     elif Config.TEMP in cmd1:
         if os.path.exists(cmd1):
-            xhamster = await bot.send_message(text=f"📤 **Uploading File:**", chat_id=message.from_user.id, reply_to_message_id=message.id)
+            xhamster = await bot.send_message(text=f"📤 **Uploading File:** 🚴‍♀️", chat_id=message.from_user.id, reply_to_message_id=message.id)
             await client.send_document(
                 chat_id=message.chat.id,
                 document=cmd1,
                 caption=cmd1,
                 reply_to_message_id=replyid,
                 progress=progress_for_pyrogram,
-                progress_args=(client, "📤 **Uploading File:**", xhamster, u_start)
+                progress_args=(client, "📤 **Uploading File:** 🚴‍♀️", xhamster, u_start)
             )
             await xhamster.delete()
         else:
@@ -83,12 +83,12 @@ async def upload_dir(client, message):
 async def download_dir(bot, message):
  d_start = time.time()
  if message.reply_to_message:
-  reply = await bot.send_message(text=f"📥 **Downloading Video:**", chat_id=message.from_user.id, reply_to_message_id=message.id)
+  reply = await bot.send_message(text=f"➣  📥 **Ꭰᴏwnlᴏᴀding 🍾 Ꮩidᴇᴏ:** 🚴‍♀️", chat_id=message.from_user.id, reply_to_message_id=message.id)
   video = await bot.download_media(
         message=message.reply_to_message,
         file_name=Config.TEMP,
         progress=progress_for_pyrogram,
-        progress_args=(bot, "📥 **Downloading Video:**", reply, d_start)
+        progress_args=(bot, "➣  📥 **Ꭰᴏwnlᴏᴀding 🍾 Ꮩidᴇᴏ:** 🚴‍♀️", reply, d_start)
   )
   await reply.edit(f"📂 **Directory Is:** `{video}`")
  else:
@@ -98,12 +98,12 @@ async def download_dir(bot, message):
 async def sample(bot, message):
  if message.reply_to_message:
    d_start = time.time()
-   reply = await bot.send_message(text="📥 **Downloading Video:**", chat_id=message.from_user.id, reply_to_message_id=message.id)
+   reply = await bot.send_message(text="➣  📥 **Ꭰᴏwnlᴏᴀding 🍾 Ꮩidᴇᴏ:** 🚴‍♀️", chat_id=message.from_user.id, reply_to_message_id=message.id)
    video = await bot.download_media(
         message=message.reply_to_message,
         file_name=Config.TEMP,
         progress=progress_for_pyrogram,
-        progress_args=(bot, "📥 **Downloading Video:**", reply, d_start)
+        progress_args=(bot, "➣  📥 **Ꭰᴏwnlᴏᴀding 🍾 Ꮩidᴇᴏ:** 🚴‍♀️", reply, d_start)
    )
    path , filename = os.path.split(video)
    output_filename = filename + '_sample.mkv'
@@ -124,18 +124,18 @@ async def vshots(bot, message):
    if cmd1 > 30:
     return message.reply_text("Bak BSDK")
    d_start = time.time()
-   reply = await bot.send_message(text="📥 **Downloading Video:**", chat_id=message.from_user.id, reply_to_message_id=message.id)
+   reply = await bot.send_message(text="➣  📥 **Ꭰᴏwnlᴏᴀding 🍾 Ꮩidᴇᴏ:** 🚴‍♀️", chat_id=message.from_user.id, reply_to_message_id=message.id)
    video = await bot.download_media(
         message=message.reply_to_message,
         file_name=Config.TEMP,
         progress=progress_for_pyrogram,
-        progress_args=(bot, "📥 **Downloading Video:**", reply, d_start)
+        progress_args=(bot, "➣  📥 **Ꭰᴏwnlᴏᴀding 🍾 Ꮩidᴇᴏ:** 🚴‍♀️", reply, d_start)
    )
    for x in range (1, cmd1):
     ss = await functions.screenshot(filepath=video)
     u_start = time.time()
     await reply.edit(f"🚀 **Starting To Upload The Photo {x}...**")
-    await bot.send_photo(chat_id=message.from_user.id,photo=str(ss), caption=x, progress=progress_for_pyrogram, progress_args=(bot, f"📤 **Uploading Photo:**", reply, u_start))
+    await bot.send_photo(chat_id=message.from_user.id,photo=str(ss), caption=x, progress=progress_for_pyrogram, progress_args=(bot, f"📤 **Uploading Photo:** 🚴‍♀️", reply, u_start))
     os.remove(ss)
    os.remove(video)
    reply.delete(True)
@@ -167,7 +167,7 @@ async def upload_handle(bot, message, filepath, filename, caption, reply):
       progress=progress_for_pyrogram,
       progress_args=(
         bot,
-        "📤 **Uploading Video:**",
+        "📤 **Uploading Video:** 🚴‍♀️",
         reply,
         u_start
       )
@@ -192,7 +192,7 @@ async def upload_handle(bot, message, filepath, filename, caption, reply):
      progress=progress_for_pyrogram,
      progress_args=(
        bot,
-       "📤 **Uploading Video:**",
+       "📤 **Uploading Video:** 🚴‍♀️",
        reply,
        u_start
      )
@@ -217,7 +217,7 @@ async def upload_handle1(bot, from_user_id, filepath, filename, caption, reply, 
      thumb=thumb,
      reply_to_message_id=reply_to_message,
      progress=progress_for_pyrogram,
-     progress_args=(bot, "📤 **Uploading Video:**", reply, u_start)
+     progress_args=(bot, "📤 **Uploading Video:** 🚴‍♀️", reply, u_start)
   )
   os.remove(thumb)
   await s.forward(Config.LOG_CHANNEL)
@@ -239,7 +239,7 @@ async def upload_handle1(bot, from_user_id, filepath, filename, caption, reply, 
       caption=caption_text,
       reply_to_message_id=reply_to_message,
       progress=progress_for_pyrogram,
-      progress_args=(bot, "📤 **Uploading Video:**", reply, u_start)
+      progress_args=(bot, "📤 **Uploading Video:** 🚴‍♀️", reply, u_start)
   )
   os.remove(thumb)
   await s.forward(Config.LOG_CHANNEL)
