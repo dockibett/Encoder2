@@ -1,147 +1,211 @@
-import pyrogram, asyncio, subprocess, time, os, re, math
-from random import randint
-from subprocess import Popen
-from bot import Config, bot, LOGS
-from hachoir.parser import createParser
-from hachoir.metadata import extractMetadata
-from html_telegraph_poster import TelegraphPoster
+import pyrogram, subprocess, traceback, sys ,json, math, os, io, asyncio, time
+from bot import bot, Config, LOGS
+
+FINISHED_PROGRESS_STR = "▓"
+UN_FINISHED_PROGRESS_STR = "░"
 
 
-class ffmpeg(object):
+MAX_MESSAGE_LENGTH = 4096
 
- async def duration(filepath):
-  try:
-   process = subprocess.Popen(
-    [
-      'ffmpeg',
-      "-hide_banner",
-      '-i',
-      filepath
-    ],
-    stdout=subprocess.PIPE,
-    stderr=subprocess.STDOUT
-   )
-   stdout, stderr = process.communicate()
-   output = stdout.decode().strip()
-   duration = re.search("Duration:\s*(\d*):(\d*):(\d+\.?\d*)[\s\w*$]",output)
-   bitrates = re.search("bitrate:\s*(\d+)[\s\w*$]",output)
-   if duration is not None:
-     hours = int(duration.group(1))
-     minutes = int(duration.group(2))
-     seconds = math.floor(float(duration.group(3)))
-     total_seconds = ( hours * 60 * 60 ) + ( minutes * 60 ) + seconds
-     int_time = int(total_seconds)
-   else:
-     total_seconds = 25
-   return total_seconds
-  except Exception as e:
-   LOGS.info(e)
+async def exec_message_f(client, message):
+    if message.from_user.id in Config.OWNER:
+        DELAY_BETWEEN_EDITS = 0.3
+        PROCESS_RUN_TIME = 100
+        cmd = message.text.split(" ", maxsplit=1)[1]
 
+        reply_to_id = message.id
+        if message.reply_to_message:
+            reply_to_id = message.reply_to_message.id
 
- async def resolution(filepath):
-    metadata = extractMetadata(createParser(filepath))
-    if metadata.has("width") and metadata.has("height"):
-      return metadata.get("width"), metadata.get("height")
-    else:
-      return 1280, 720
-
-
- async def mp4(filepath):
-  try:
-   output = filepath + '.mp4'
-   cmd = f'ffmpeg -loglevel error -i  "{filepath}" -map 0:a -map 0:v -c:a copy -c:v copy "{output}" -y'
-   process = await asyncio.create_subprocess_shell(
-    cmd,
-    stdout=asyncio.subprocess.PIPE,
-    stderr=asyncio.subprocess.PIPE
-   )
-   stdout , stderr = await process.communicate()
-   LOGS.info(stdout)
-   LOGS.info(stderr)
-   return output
-  except Exception as e:
-   return None
-
-
- async def mkv(filepath):
-  try:
-   output = filepath + '.mkv'
-   cmd = f'ffmpeg -i  "{filepath}" -c copy "{output}" -y'
-   process = await asyncio.create_subprocess_shell(
-    cmd,
-    stdout=asyncio.subprocess.PIPE,
-    stderr=asyncio.subprocess.PIPE
-   )
-   stdout , stderr = await process.communicate()
-   LOGS.info(stdout)
-   LOGS.info(stderr)
-   return output
-  except Exception as e:
-   LOGS.info(e)
-   return None
-
-
-class functions(object):
-   def __init__(self):
-    self.base__url = "t.me"
-
-   async def mediainfo(filepath):
-    try:
-     process = subprocess.Popen(
-        ["mediainfo", filepath, "--Output=HTML"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-     )
-     stdout, stderr = process.communicate()
-     out = stdout.decode()
-     abc = await bot.get_me()
-     name = abc.first_name
-     username = abc.username
-     client = TelegraphPoster(use_api=True)
-     client.create_api_token("Mediainfo")
-     page = client.post(
-        title="Mediainfo",
-        author=name,
-        author_url=f"https://t.me/{username}",
-        text=out,
-     )
-     return page["url"]
-    except Exception as e:
-     LOGS.info(e)
-     return "404"
-
-
-   async def sample(filepath, output):
-     try:
-      time_latest = time.time()
-      output_file = output
-      duration = await ffmpeg.duration(filepath=filepath)
-      sample_duration = 87
-      best_duration = duration - sample_duration
-      ss = randint(1, int(best_duration))
-      file_gen_cmd = f'ffmpeg -loglevel error -ss {str(ss)} -i "{filepath}" -map 0:v -map 0:a  -c:a copy -c:v copy -t {str(sample_duration)} "{output_file}" -y'
-      process = await asyncio.create_subprocess_shell(
-        file_gen_cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-      )
-      stdout, stderr = await process.communicate()
-      LOGS.info(stderr)
-      return output_file
-     except Exception as e:
-      return None
-
-
-   async def screenshot(filepath):
-    time_latest = time.time()
-    screenshot = f'{time_latest}.jpg'
-    duration = await ffmpeg.duration(filepath=filepath)
-    ss = randint(2, duration)
-    cmd = f'ffmpeg -ss {str(ss)} -i "{filepath}" -vframes 1 "{screenshot}" -y'
-    process = await asyncio.create_subprocess_shell(
+        start_time = time.time() + PROCESS_RUN_TIME
+        process = await asyncio.create_subprocess_shell(
             cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=PROCESS_RUN_TIME)
+        except asyncio.TimeoutError:
+            process.kill()
+            return await message.reply_text(f"⌛ **Command '{cmd}' Timed Out After {PROCESS_RUN_TIME} Seconds.** 🛫", quote=True)
+
+        e = stderr.decode().strip()
+        o = stdout.decode().strip()
+
+        OUTPUT = f"<b>QUERY:</b>\n<code>Command: {cmd}\nPID: {process.pid}</code>\n\n"
+
+        if e:
+            OUTPUT += f"<b>stderr:</b>\n<code>{e}</code>\n"
+        else:
+            OUTPUT += "<b>stderr:</b>\n<code>No Error</code>\n"
+
+        if o:
+            _o = o.split("\n")
+            o = "`\n`".join(_o)
+            OUTPUT += f"<b>Output:</b>\n<code>{o}</code>"
+        else:
+            OUTPUT += "<b>Output:</b>\n<code>No Output</code>"
+
+        if len(OUTPUT) > MAX_MESSAGE_LENGTH:
+            with open("exec.text", "w+", encoding="utf8") as out_file:
+                out_file.write(str(OUTPUT))
+            await client.send_document(
+                chat_id=message.chat.id,
+                document="exec.text",
+                caption=cmd,
+                disable_notification=True,
+                reply_to_message_id=reply_to_id
+            )
+            os.remove("exec.text")
+            await message.delete()
+        else:
+            await message.reply_text(
+                OUTPUT,
+                reply_to_message_id=message.id
+            )
+    else:
+        return
+
+
+async def aexec(code, client, message):
+    exec(
+        f"async def __aexec(client, message): "
+        + "".join(f"\n {l}" for l in code.split("\n"))
     )
-    stdout, stderr = await process.communicate()
-    return screenshot
+    return await locals()["__aexec"](client, message)
+
+
+async def eval_message_f(client, message):
+    if message.from_user.id in Config.OWNER:
+        status_message = await message.reply_text("`...`", quote=True)
+        cmd = message.text.split(" ", maxsplit=1)[1]
+
+        reply_to_id = message.id
+        if message.reply_to_message:
+            reply_to_id = message.reply_to_message.id
+
+        old_stderr = sys.stderr
+        old_stdout = sys.stdout
+        redirected_output = sys.stdout = io.StringIO()
+        redirected_error = sys.stderr = io.StringIO()
+        stdout, stderr, exc = None, None, None
+
+        try:
+            await aexec(cmd, client, message)
+        except Exception as e:
+            exc = traceback.format_exc()
+            evaluation = f"Error: {str(e)}"
+        else:
+            stdout = redirected_output.getvalue()
+            stderr = redirected_error.getvalue()
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+
+            if exc:
+                evaluation = exc
+            elif stderr:
+                evaluation = stderr
+            elif stdout:
+                evaluation = stdout.rstrip()
+            else:
+                evaluation = "Success"
+
+        final_output = (
+            "<b>EVAL:</b> <code>{}</code>\n\n<b>OUTPUT:</b>\n<code>{}</code>".format(
+                cmd, evaluation.strip()
+            )
+        )
+
+        if len(final_output) > MAX_MESSAGE_LENGTH:
+            with open("eval.text", "w+", encoding="utf8") as out_file:
+                out_file.write(str(final_output))
+            await message.reply_document(
+                document="eval.text",
+                caption=cmd,
+                disable_notification=True,
+                reply_to_message_id=reply_to_id,
+            )
+            os.remove("eval.text")
+            await status_message.delete()
+        else:
+            await status_message.edit_text(final_output)
+    else:
+        return
+
+
+async def progress_for_pyrogram(current, total, bot, ud_type, message, start):
+    now = time.time()
+    diff = now - start
+    if round(diff % 10.00) == 0 or current == total:
+        percentage = current * 100 / total
+        speed = current / diff
+        elapsed_time = round(diff) * 1000
+        time_to_completion = round((total - current) / speed) * 1000
+        estimated_total_time = elapsed_time + time_to_completion
+        elapsed_time = TimeFormatter(milliseconds=elapsed_time)
+        estimated_total_time = TimeFormatter(milliseconds=estimated_total_time)
+        pro_bar = "{0}{1}".format(''.join([FINISHED_PROGRESS_STR for i in range(math.floor(percentage / 10))]), ''.join([UN_FINISHED_PROGRESS_STR for i in range(10 - math.floor(percentage / 10))]))
+        perc_b = '{0}'.format(int(percentage))
+        done_mb = '{0}'.format(humanbytes(current))
+        total_mb = '{0}'.format(humanbytes(total))
+        spid = '{0}'.format(humanbytes(speed))
+        messg = f"{ud_type}\n➣ **Ꮲᴇrᴄᴇnᴛ** 🗿 : {perc_b} % \n➣ **Ꭲᴏᴛᴀl Ꮪizᴇ** 🎯 : {total_mb}\n➣ **Ꮯᴏʍᴩlᴇᴛᴇd** 🏗 : {done_mb}\n➣ **Ꭲiʍᴇ Ꮮᴇfᴛ** ⌛️ : {estimated_total_time if estimated_total_time != '' else '0 s'}\n➣ **Ꮪᴩᴇᴇd** 🚀 : {spid}\n➢  {pro_bar} 🛫"
+        try:
+         if not message.photo:
+          await message.edit_text(text=messg)
+         else:
+          await message.edit_caption(caption=messg)
+        except:
+         pass
+
+
+def humanbytes(size):
+    if not size:
+        return ""
+    power = 2**10
+    n = 0
+    Dic_powerN = {0: ' ', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}
+    while size > power:
+        size /= power
+        n += 1
+    return str(round(size, 2)) + " " + Dic_powerN[n] + 'B'
+
+
+def TimeFormatter(milliseconds: int) -> str:
+    seconds, milliseconds = divmod(int(milliseconds), 1000)
+    minutes, seconds = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    tmp = ((str(days) + "d, ") if days else "") + \
+        ((str(hours) + "h, ") if hours else "") + \
+        ((str(minutes) + "m, ") if minutes else "") + \
+        ((str(seconds) + "s, ") if seconds else "")
+    return tmp[:-2]
+
+
+async def progress_for_pyrogram1(current, total, bot, ud_type, message, start, size):
+    now = time.time()
+    total = size
+    diff = now - start
+    if round(diff % 10.00) == 0 or current == total:
+        percentage = current * 100 / total
+        speed = current / diff
+        elapsed_time = round(diff) * 1000
+        time_to_completion = round((total - current) / speed) * 1000
+        estimated_total_time = elapsed_time + time_to_completion
+        elapsed_time = TimeFormatter(milliseconds=elapsed_time)
+        estimated_total_time = TimeFormatter(milliseconds=estimated_total_time)
+        pro_bar = "{0}{1}".format(''.join([FINISHED_PROGRESS_STR for i in range(math.floor(percentage / 10))]), ''.join([UN_FINISHED_PROGRESS_STR for i in range(10 - math.floor(percentage / 10))]))
+        perc_b = '{0}'.format(int(percentage))
+        done_mb = '{0}'.format(humanbytes(current))
+        total_mb = '{0}'.format(humanbytes(total))
+        spid = '{0}'.format(humanbytes(speed))
+        messg = f"{ud_type}\n➣ **Ꮲᴇrᴄᴇnᴛ** 🗿 : {perc_b} % \n➣ **Ꭲᴏᴛᴀl Ꮪizᴇ** 🎯 : {total_mb}\n➣ **Ꮯᴏʍᴩlᴇᴛᴇd** 🏗 : {done_mb}\n➣ **Ꭲiʍᴇ Ꮮᴇfᴛ** ⌛️ : {estimated_total_time if estimated_total_time != '' else '0 s'}\n➣ **Ꮪᴩᴇᴇd** 🚀 : {spid}\n➢ {pro_bar} 🛫"
+        try:
+         if not message.photo:
+          await message.edit_text(text=messg)
+         else:
+          await message.edit_caption(caption=messg)
+        except:
+         pass
